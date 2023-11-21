@@ -1,15 +1,35 @@
+#include <fstream>
 #include <iostream>
 #include <string>
-#include <cctype>
-#include <Windows.h>
-#include <conio.h>
 #include <iomanip>
+#include <typeinfo>
+#include <Windows.h>
+#include <process.h>
 using namespace std;
-void setcoordinates(int x, int y) {
+const int MAXSOFT = 100;
+void gotoxy(int x, int y) {
 	COORD coord;
 	coord.X = x;
 	coord.Y = y;
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleCursorPosition(handle, coord);
+}
+void setzabor(int x, int y, int length, int width) {
+	gotoxy(x, y);
+	for (int i = 0; i < length; i++) {
+		cout << "-";
+	}
+	y++;
+	for (int i = 1; i < width; i++) {
+		gotoxy(x, y);
+		cout << "*";
+		gotoxy(x + length, y++);
+		cout << "*";
+	}
+	gotoxy(x, y);
+	for (int i = 0; i < length; i++) {
+		cout << "-";
+	}
 }
 template <typename T>
 void check(T& a) {
@@ -17,387 +37,822 @@ void check(T& a) {
 		cin >> a;
 		if (cin.eof()) {
 			cin.clear();
-			cin.ignore(1024, '\n'); 
+			cin.ignore(1024, '\n');
 			a = NULL;
 			break;
 		}
 		else if (cin.get() != '\n') {
+			system("cls");
 			cout << "Попробуйте еще раз, неверный ввод." << endl;
-			cout << "Либо введите сочетание клавиш Ctrl+Z, чтобы перестать вводить" << endl;
 			cin.clear();
 			cin.ignore(1024, '\n');
+			throw(1);
 		}
 		else {
 			if (cin.fail()) {
+				system("cls");
 				cout << "Попробуйте еще раз, неверный ввод." << endl;
-				cout << "Либо введите сочетание клавиш Ctrl+Z, чтобы перестать вводить" << endl;
 				cin.clear();
 				cin.ignore(1024, '\n');
+				throw(1);
 			}
 			else if (cin.good()) break;
 		}
-		
+
 	}
 };
-class Program {
-	string filename;
-	float filesize;
-	string bytes;
-public:
-	Program() {
-		filename = "changelog.dll";
-		filesize = 0.45;
-		bytes = "МБ";
-	}
-	string getname() {
-		return filename;
-	}
-	void makefiledata(string filename, float filesize, string bytes) {
-		this->filename = filename;
-		this->bytes = bytes;
-		this->filesize = filesize;
-	}
-	Program getprogram() {
-		return *this;
-	}
-	friend ostream& operator<< (ostream& out, Program program);
-};
-ostream& operator<<(ostream& out, Program program) {
-	out.setf(ios::hex, ios::basefield);
-	out << setw(20) << " " << "|" << setw(45) << right << program.filename << setw(20) << right << program.filesize << " " << program.bytes << setw(13) << "|"<< "\n";
-	out.unsetf(ios::hex);
-	return out;
-}
+enum SoftwareType {os,application,utilities,drivers };
 class Software {
 protected:
-	Program* programs;
 	string name;
-	int numofprograms;
-	bool system;
+	float size;
+	string developer;
+	float version;
+	static int curSoft;
+	static Software* downloaded[];
 public:
 	Software() {
-		name = "Антивирус";
-		programs = new Program[1];
-		numofprograms = 1;
-		system = true;
+		name = "missing";
+		size = 0;
+		developer = "None";
+		version = 1.0;	
 	}
-	void setName(string name) {
-		this->name = name;
-	}
-	string getName() {
-		return name;
-	}
-	int getnumofprograms() {
-		return numofprograms;
-	}
-	void setSoft(string name, int numofprograms, bool system) {
-		this->name = name; 
-		this->numofprograms = numofprograms;
-		delete[] programs;
-		programs = new Program[numofprograms];
-		this->system = system;
-	}
-	void AddFiles(string filename,float size) {
-		numofprograms++;
-		Program* temp = new Program[numofprograms];
-		for (int i = 0; i < numofprograms - 1; i++) {
-			temp[i] = programs[i].getprogram();
+	virtual void getData() {
+		system("cls");
+		setzabor(50, 7, 100, 12);
+		gotoxy(60, 9);
+		cout << "Введите название ПО: " << endl;
+		gotoxy(82, 9);
+		getline(cin, name);
+		gotoxy(60, 10);
+		cout << "Введите размер папки(в МБ): " << endl;
+		try {
+			gotoxy(90, 10);
+			check(size);
 		}
-		temp[numofprograms - 1].makefiledata(filename, size, "MБ");
-		this->programs = temp;
-	}
-	void DelFiles(string filename) {
-		int k = 0;
-		for (int i = 0; i < numofprograms; i++) {
-			if (programs[i].getname() == filename) {
-				k++;
-			}
-			if (k > 0) {
-				programs[i] = programs[i + 1];
-			}
+		catch (...) {
+			system("pause");
+			this->getData();
+			return;
 		}
-		if (k > 0) numofprograms--;
-	}
-	Software(const Software& other) {
-		numofprograms = other.numofprograms;
-		programs = new Program[numofprograms];
-		for (int i = 0; i < numofprograms; i++) {
-			programs[i] = other.programs[i];
+		gotoxy(60, 11);
+		cout << "Введите имя разработчика ПО" << endl;
+		gotoxy(90, 11);
+		getline(cin, developer);
+		gotoxy(60, 12);
+		cout << "Введите версию ПО" << endl;
+		try {
+			gotoxy(87, 12);
+			check(version);
 		}
-		name = other.name;
-		system = other.system;
+		catch (...) {
+			system("pause");
+			this->getData();
+			return;
+		}
 	}
-	friend ostream& operator<< (ostream& out, Software st);
+	virtual void putData() {
+		cout << setw(50) << left << " " << "Название: " << name << endl;
+		cout << setw(50) << left << " " << "Размер: " << size << " MB" << endl;
+		cout << setw(50) << left << " " << "Разработчик: " << developer << endl;
+		cout << setw(50) << left << " " << "Версия ПО: " << version << endl;
+	}
+	static void add();
+	static void display();
+	static void read();
+	static void write(int option);
+	static void del(int num);
+	static void select();
+	virtual void print(ostream& o) {
+		o << name << endl;
+		o << size << " " << developer << endl;
+		o << version << endl;
+	}
+	virtual void input(istream& i) {
+		i.ignore(1024, '\n');
+		getline(i, name);
+		i >> size;
+		i.ignore(1);
+		getline(i, developer);
+		i >> version;
+	}
+	friend ostream& operator<< (ostream & o, Software *soft);
+	friend istream& operator>> (istream& i, Software* soft);
 };
-ostream& operator<<(ostream& out, Software st) {
-	out.setf(ios::showpos|ios::boolalpha);
-	out << "\n\n\n" << setw(20) << right << " " << "-------------------------------------------------------------------------------" << "\n";
-	out << setw(20) << " " << "|" << setw(45) << right << st.name << setw(33) << "|" << "\n";
-	out << setw(20) << " " << "|" << setw(10) << right << " " << "Системное:" << setw(25) << right << st.system << setw(33) << "|" << "\n";
-	out << setw(20) << " " << "|" << setw(10) << right << " " << "Количество приложений:" << setw(12) << right << st.numofprograms << setw(34) << "|" << "\n";
-	if (st.numofprograms != 0) out << setw(20) << right << " " << "-------------------------------------------------------------------------------" << "\n";
-	out.unsetf(ios::boolalpha|ios::showpos);
-	return out;
+int Software::curSoft;
+Software* Software::downloaded[MAXSOFT];
+ostream& operator<< (ostream& o, Software* soft) {
+	soft->print(o);
+	return o;
+}
+istream& operator>> (istream& i, Software* soft) {
+	soft->input(i);
+	return i;
 }
 class OS : public Software {
-	string version;
+private:
 	string type;
+	string tech_requirements;
 public:
-	OS() {
-		version = "1.0";
-		type = "Windows";
+	OS() : Software() {
+		type = "none";
+		tech_requirements = "none";
 	}
-	void setType(string type) {
-		if (type != "Windows" && type != "macOS" && type != "Linux") {
-			this->type = "Windows";
-			cout << "Такой операционной системы не существует!\nУстановлена стандартная ОС WIndows" << endl;
+	void getData() override{
+		system("cls");
+		setzabor(50, 7, 100, 12);
+		gotoxy(60, 9);
+		cout << "Введите название ПО: " << endl;
+		gotoxy(82, 9);
+		getline(cin, name);
+		gotoxy(60, 10);
+		cout << "Введите размер папки(в МБ): " << endl;
+		try {
+			gotoxy(90, 10);
+			check(size);
 		}
-		else this->type = type;
-		
+		catch (...) {
+			system("pause");
+			this->getData();
+			return;
+		}
+		gotoxy(60, 11);
+		cout << "Введите имя разработчика ПО" << endl;
+		gotoxy(90, 11);
+		getline(cin, developer);
+		gotoxy(60, 12);
+		cout << "Введите версию ПО" << endl;
+		try {
+			gotoxy(87, 12);
+			check(version);
+		}
+		catch (...) {
+			system("pause");
+			this->getData();
+			return;
+		}
+		gotoxy(60, 13);
+		cout << "Введите тип ОС: " << endl;
+		gotoxy(79, 13);
+		getline(cin, type);
+		gotoxy(60, 14);
+		cout << "Введите технические требования для данной ОС: " << endl;
+		gotoxy(120, 14);
+		getline(cin, tech_requirements);
 	}
-	string getType() {
-		return type;
+	void putData() {
+		Software::putData();
+		cout << setw(50) << left << " " << "Тип ОС: " << type << endl;
+		cout << setw(50) << left << " " << "Технические требования: " << tech_requirements << endl;
 	}
-	string getName() {
-		return name;
+	void print(ostream& o) override{
+		Software::print(o);
+		o << type << endl;
+		o << tech_requirements << endl;
 	}
-	string getVersion() {
-		return version;
+	void input(istream& i) override {
+		Software::input(i);
+		i.ignore(1024, '\n');
+		getline(i, type);
+		getline(i,tech_requirements);
 	}
 };
-class Computer {
-	string model;
-	string dateofcreation;
-	Software* soft;
-	OS type;
-	int numofsoft;
+class Application : public Software {
+private:
+	string Apptype;
+	string category;
+	bool license;
 public:
-	void addprogram(string filename, float bytes, int num) {
-		soft[num - 1].AddFiles(filename, bytes);
+	Application() : Software() {
+		Apptype = "none";
+		category = "none";
+		license = false;
 	}
-	void printSoft(string soft) {
-		int count = 0;
-		for (int i = 0; i < numofsoft; i++) {
-			if (soft == this->soft[i].getName()) {
-				cout << this->soft[i];
-				count++;
-				break;
-			}
-		}
-		if (count == 0) cout << "Такого файла в ПО нет" << endl;
-	}
-	Computer() {
-		model = "Asus";
-		soft = new Software[1];
-		dateofcreation = "12.12.2004";
-		numofsoft = 1;
-		type.setType("Windows");
-	}
-	Computer(string model, string OStype) {
-		this->model = model;
-		soft = new Software[1];
-		numofsoft = 1;
-		dateofcreation = "12.12.2004";
+	void getData() {
+		system("cls");
+		setzabor(50, 7, 100, 12);
+		gotoxy(60, 9);
+		cout << "Введите название ПО: " << endl;
+		gotoxy(82, 9);
+		getline(cin, name);
+		gotoxy(60, 10);
+		cout << "Введите размер папки(в МБ): " << endl;
 		try {
-			type.setType(OStype);
+			gotoxy(90, 10);
+			check(size);
 		}
-		catch (int) {
-			cout << "Неправильный ввод, такого типа ОС не существует" << endl;
+		catch (...) {
+			system("pause");
+			this->getData();
+			return;
 		}
-	}
-	Computer(const Computer& other) {
-		numofsoft = other.numofsoft;
-		soft = new Software[numofsoft];
-		for (int i = 0; i < numofsoft; i++) {
-			soft[i] = other.soft[i];
-		}
-		dateofcreation = other.dateofcreation;
-		model = other.model;
-		type = other.type;
-	}
-	void setnumofsoft(int num) {
-		this->numofsoft = num;
-	}
-	int getNumofsoft() {
-		return numofsoft;
-	}
-	void setModel(string model) {
-		this->model = model;
-	}
-	string getModel() {
-		return model;
-	}
-	void setDate(string date) {
-		int k = 0;
-		if (date.find_first_not_of("1234567890.") != date.npos || date.length() != 10) throw "Неверная дата";
-		for (int i = 0; i < date.length(); i++) {
-			if (date[i] == '.' && (i == 2 || i == 5)) k++;
-		}
-		if (k != 2) throw "Неверная дата";
-		else this->dateofcreation = date;
-	}
-	void MakeSoft(string* new_obj) {
-		delete[] soft;
+		gotoxy(60, 11);
+		cout << "Введите имя разработчика ПО" << endl;
+		gotoxy(90, 11);
+		getline(cin, developer);
+		gotoxy(60, 12);
+		cout << "Введите версию ПО" << endl;
 		try {
-			soft = new Software[numofsoft];
-			for (int i = 0; i < numofsoft; i++) {
-				soft[i].setName(new_obj[i]);
-			}
+			gotoxy(87, 12);
+			check(version);
 		}
-		catch (const bad_alloc& ex) {
-			cout << "на устройстве не хватает памяти" << endl;
+		catch (...) {
+			system("pause");
+			this->getData();
+			return;
 		}
-	}
-	void addSoft(string name,int numofprograms) {
-		numofsoft++;
-		Software* temp = new Software[numofsoft];
-		for (int i = 0; i < numofsoft - 1; i++) {
-			temp[i].setSoft(this->soft[i].getName(), this->soft[i].getnumofprograms(), false);
+		gotoxy(60, 13);
+		cout << "Введите тип приложения: " << endl;
+		gotoxy(85, 13);
+		getline(cin, Apptype);
+		gotoxy(60, 14);
+		cout << "Введите категорию приложения: " << endl;
+		gotoxy(93, 14);
+		getline(cin, category);
+		gotoxy(60, 15);
+		cout << "Нужна ли лицензия для скачивания?"; 
+		gotoxy(63, 16);
+		cout << "1. - ДА";
+		gotoxy(63, 17);
+		cout << "0. - НЕТ" << endl;
+		try{
+			gotoxy(60, 18);
+			check(license);
 		}
-		temp[numofsoft - 1].setSoft(name, numofprograms, false);
-		this->soft = temp;
-	}
-	void sort() {
-		
-	}
-	void deleteSoft(int soft) {
-		for (int i = 0; i < numofsoft - 1; i++) {
-			if (i + 1 == soft) {
-				this->soft[i].setName(this->soft[i + 1].getName());
-			}
-		}
-		if (soft <= numofsoft) numofsoft--;
-		else throw "Столько ПО еще нет";
-	}
-	void setOS(string new_os) {
-		try {
-			type.setType(new_os);
-		}
-		catch (int) {
-			cout << "Неправильный ввод, такого типа ОС не существует" << endl;
+		catch (...) {
+			system("pause");
+			this->getData();
+			return;
 		}
 	}
-	friend ostream& operator<< (ostream& out, Computer PC);
+	void putData() {
+		Software::putData();
+		cout << setw(50) << left << " " << "Тип приложения: " << Apptype << endl;
+		cout << setw(50) << left << " " << "Категория: " << category<< endl;
+		cout.setf(ios::boolalpha);
+		cout << setw(50) << left << " " << "Наличие лицензионной версии: " << license << endl;
+		cout.unsetf(ios::boolalpha);
+	}
+	void print(ostream& o) override {
+		Software::print(o);
+		o << Apptype << endl;
+		o << category << endl;
+		o << license << endl;
+	}
+	void input(istream& i) override {
+		Software::input(i);
+		i.ignore(1024, '\n');
+		getline(i, Apptype);
+		getline(i, category);
+		i >> license;
+	}
 };
-ostream& operator<<(ostream& out, Computer PC) {
-	out << "\n\n\n" << setw(20) << right << " " << "-------------------------------------------------------------------------------" << "\n";
-	out << setw(20) << " " << "|" << setw(45) << right << PC.model << setw(33) << "|" << "\n";
-	out << setw(20) << " " << "|" << setw(10) << right << " " << "Дата сборки:" << setw(35) << right << PC.dateofcreation << setw(21) << "|" << "\n";
-	out << setw(20) << " " << "|" << setw(10) << right << " " << "Операционная система:" << setw(25) << right << PC.type.getType() << setw(22) << "|" << "\n";
-	out << setw(20) << " " << "|" << setw(10) << right << " " << "Программное обеспечение:" << setw(22) << right << PC.numofsoft << setw(22) << "|" << "\n";
-	out << setw(20) << right << " " << "-------------------------------------------------------------------------------" << "\n";
-	for (int i = 0; i < PC.numofsoft; i++) {
-		out << setw(20) << " " << "|" << setw(10) << right << " " << "Приложение " << i + 1 << " :" << setw(25) << right << PC.soft[i].getName() << setw(29) << "|" << "\n";
+class Utility : public Software {
+private:
+	string purpose;
+	bool updated;
+public:
+	Utility() : Software() {
+		purpose = "none";
+		updated = false;
 	}
-	if (PC.numofsoft != 0) out << setw(20) << right << " " << "-------------------------------------------------------------------------------" << "\n";
-	return out;
+	void getData() {
+		system("cls");
+		setzabor(50, 7, 100, 12);
+		gotoxy(60, 9);
+		cout << "Введите название ПО: " << endl;
+		gotoxy(82, 9);
+		getline(cin, name);
+		gotoxy(60, 10);
+		cout << "Введите размер папки(в МБ): " << endl;
+		try {
+			gotoxy(90, 10);
+			check(size);
+		}
+		catch (...) {
+			system("pause");
+			this->getData();
+			return;
+		}
+		gotoxy(60, 11);
+		cout << "Введите имя разработчика ПО" << endl;
+		gotoxy(90, 11);
+		getline(cin, developer);
+		gotoxy(60, 12);
+		cout << "Введите версию ПО" << endl;
+		try {
+			gotoxy(87, 12);
+			check(version);
+		}
+		catch (...) {
+			system("pause");
+			this->getData();
+			return;
+		}
+		gotoxy(60, 13);
+		cout << "Введите тип утилиты: " << endl;
+		gotoxy(85, 13);
+		getline(cin, purpose);
+		gotoxy(60, 14);
+		cout << "Нужно ли обновление для утилиты?";
+		gotoxy(63, 15);
+		cout << "1. - ДА";
+		gotoxy(63, 16);
+		cout << "0. - НЕТ" << endl;
+		try {
+			gotoxy(60, 17);
+			check(updated);
+		}
+		catch (...) {
+			system("pause");
+			this->getData();
+			return;
+		}
+	}
+	void putData() {
+		Software::putData();
+		cout << setw(50) << left << " " << "Тип приложения: " << purpose << endl;
+		cout.setf(ios::boolalpha);
+		cout <<setw(50)<<left<<" "<< "Обновлено: " << updated << endl;
+		cout.unsetf(ios::boolalpha);
+	}
+	void print(ostream& o) override {
+		Software::print(o);
+		o << purpose << endl;
+		o << updated << endl;
+	}
+	void input(istream& i) override {
+		Software::input(i);
+		i.ignore(1024, '\n');
+		getline(i, purpose);
+		i >> updated;
+	}
+};
+class Driver : public Software {
+private:
+	string compatible;
+	bool license;
+public:
+	Driver() : Software() {
+		compatible = "none";
+		license = false;
+	}
+	void getData() {
+		system("cls");
+		setzabor(50, 7, 100, 12);
+		gotoxy(60, 9);
+		cout << "Введите название ПО: " << endl;
+		gotoxy(82, 9);
+		getline(cin, name);
+		gotoxy(60, 10);
+		cout << "Введите размер папки(в МБ): " << endl;
+		try {
+			gotoxy(90, 10);
+			check(size);
+		}
+		catch (...) {
+			system("pause");
+			this->getData();
+			return;
+		}
+		gotoxy(60, 11);
+		cout << "Введите имя разработчика ПО" << endl;
+		gotoxy(90, 11);
+		getline(cin, developer);
+		gotoxy(60, 12);
+		cout << "Введите версию ПО" << endl;
+		try {
+			gotoxy(87, 12);
+			check(version);
+		}
+		catch (...) {
+			system("pause");
+			this->getData();
+			return;
+		}
+		gotoxy(60, 13);
+		cout << "Введите совместимости драйвера: " << endl;
+		gotoxy(95, 13);
+		getline(cin, compatible);
+		gotoxy(60, 14);
+		cout << "Нужна ли лицензия для скачивания?";
+		gotoxy(63, 15);
+		cout << "1. - ДА";
+		gotoxy(63, 16);
+		cout << "0. - НЕТ" << endl;
+		try {
+			gotoxy(60, 17);
+			check(license);
+		}
+		catch (...) {
+			system("pause");
+			this->getData();
+			return;
+		}
+	}
+	void putData() {
+		Software::putData();
+		cout << setw(50) << left << " " << "Совместимости: " << compatible << endl;
+		cout.setf(ios::boolalpha);
+		cout << setw(50) << left << " " << "Наличие лицензионной версии: " << license << endl;
+		cout.unsetf(ios::boolalpha);
+	}
+	void print(ostream& o) override {
+		Software::print(o);
+		o << compatible << endl;
+		o << license << endl;
+	}
+	void input(istream& i) override {
+		Software::input(i);
+		i.ignore(1024, '\n');
+		getline(i, compatible);
+		i >> license;
+	}
+};
+SoftwareType getType(Software* x) {
+	if (typeid (*x) == typeid(OS))
+		return SoftwareType::os;
+	else if (typeid(*x) == typeid(Driver))
+		return SoftwareType::drivers;
+	else if (typeid(*x) == typeid(Application))
+		return SoftwareType::application;
+	else if (typeid(*x) == typeid(Utility))
+		return SoftwareType::utilities;
+	else {
+		cerr << "\nНеправильный тип работника";
+		exit(1);
+	}
+	return SoftwareType::application;
+}
+void Software::add() {
+	int choice;
+	system("cls");
+	gotoxy(60, 9);
+	cout << "Что вы хотите добавить?" << endl;
+	gotoxy(60, 10);
+	cout << "1. Операционную систему" << endl;
+	gotoxy(60, 11);
+	cout << "2. Утилиту" << endl;
+	gotoxy(60, 12);
+	cout << "3. Драйвер" << endl;
+	gotoxy(60, 13);
+	cout << "4. Приложение" << endl;
+	setzabor(50, 7, 100, 12);
+	gotoxy(60, 14);
+	cout << "Ваш выбор: " << endl;
+	gotoxy(71, 14);
+	try {
+		check(choice);
+	}
+	catch (...) {
+		system("pause");
+		Software::add();
+		return;
+	}
+	system("cls");
+	switch (choice) {
+	case 1:
+		downloaded[curSoft] = new OS;
+		break;
+	case 2:
+		downloaded[curSoft] = new Utility;
+		break;
+	case 3:
+		downloaded[curSoft] = new Driver;
+		break;
+	case 4:
+		downloaded[curSoft] = new Application;
+		break;
+	default: cout << "Некорректный ввод" << endl;
+		system("pause");
+		return;
+	}
+	downloaded[curSoft++]->getData();
+	system("cls");
+	cout << "Успешно добавлено" << endl;
+	system("pause");
+}
+void Software::display() {
+	if (curSoft == 0) {
+		system("cls");
+		cout << "Еще не было введено ни одного ПО" << endl;
+		return;
+	}
+	gotoxy(0,12);
+	for (int j = 0; j < curSoft; j++) {
+		cout << setw(50)<< left << " " << (j + 1);
+		SoftwareType softype;
+		softype = getType(downloaded[j]);
+		switch (softype) {
+		case SoftwareType::os:
+			cout << ". Тип: Операционная система" << endl;
+			break;
+		case SoftwareType::application:
+			cout << ". Тип: Приложение" << endl;
+			break;
+		case SoftwareType::utilities:
+			cout << ". Тип: Утилита" << endl;
+			break;
+		case SoftwareType::drivers:
+			cout << ". Тип: Драйвер" << endl;
+			break;
+		default: cout << ". Неизвестный тип" << endl;
+		}
+		downloaded[j]->putData();
+		if (j != curSoft - 1) {
+			cout << setw(40) << left << " " << "---------------------------------------------------------------------------------------------------" << endl;
+		}
+		cout << endl;
+	}
+	setzabor(40, 10, 100, 10 * curSoft);
+	cout << endl;
+}
+void Software::write(int option) {
+	int size = 0;
+	ofstream ouf;
+	SoftwareType softype;
+	switch (option) {
+	case 1:
+		ouf.open("SOFT.txt", ios::app);
+		break;
+	case 2:
+		ouf.open("SOFT.txt", ios::trunc);
+		break;
+	}
+	if (!ouf) {
+		cout << "\nНевозможно открыть файл\n";
+		ouf.close();
+		return;
+	}
+	for (int j = 0; j < curSoft; j++) {
+		softype = getType(downloaded[j]);
+		ouf << softype << endl;
+		ouf << downloaded[j];
+		if (!ouf) {
+			cout << "\nЗапись в файл невозможна\n";
+			ouf.close();
+			return;
+		}
+	}
+	ouf.close();
+}
+void Software::del(int num) {
+	if (curSoft < num) {
+		cout << "Столько ПО еще не добавлено" << endl;
+	}
+	else {
+		int size = 0;
+		ofstream ouf;
+		SoftwareType softype;
+		ouf.open("../x64", ios::trunc);
+		if (!ouf.is_open()) {
+			cout << "\nНевозможно открыть файл\n";
+			return;
+		}
+		for (int j = 0; j < curSoft; j++) {
+			if (j != num - 1) {
+				softype = getType(downloaded[j]);
+				ouf << softype << endl;
+				ouf << downloaded[j];
+				if (!ouf) {
+					cout << "\nЗапись в файл невозможна\n";
+					return;
+				}
+			}
+		}
+		Software::read();
+		system("cls");
+		cout << "Успешно удалено" << endl;
+	}
+}
+void Software::select() {
+	int choice;
+	int kol = 0;
+	system("cls");
+	gotoxy(60, 3);
+	cout << "Какое ПО вы хотите вывести на экран?" << endl;
+	gotoxy(60, 4);
+	cout << "1. Операционную систему" << endl;
+	gotoxy(60, 5);
+	cout << "2. Утилиту" << endl;
+	gotoxy(60, 6);
+	cout << "3. Драйвер" << endl;
+	gotoxy(60, 7);
+	cout << "4. Приложение" << endl;
+	gotoxy(60, 8);
+	cout << "Ваш выбор: " << endl;
+	gotoxy(71, 8);
+	try {
+		check(choice);
+	}
+	catch (...) {
+		system("cls");
+		cout << "Неправильный ввод" << endl;
+		system("pause");
+		return;
+	}
+	cout << endl;
+	cout << endl;
+	switch (choice) {
+	case 1:
+		for (int j = 0; j < curSoft; j++) {
+			SoftwareType softype;
+			softype = getType(downloaded[j]);
+			if (softype == os)
+			{
+				if (kol != 0) {
+					cout << setw(40) << left << " " << "---------------------------------------------------------------------------------------------------" << endl;
+				}
+				cout << endl;
+				kol++;
+				cout << setw(50) << left << " " << (j + 1) << ". Тип: Операционная система" << endl;
+				downloaded[j]->putData();
+			}
+		}
+		break;
+	case 2:
+		for (int j = 0; j < curSoft; j++) {
+		SoftwareType softype;
+		softype = getType(downloaded[j]);
+		if (softype == utilities)
+		{
+			if (kol != 0) {
+				cout << setw(40) << left << " " << "---------------------------------------------------------------------------------------------------" << endl;
+			}
+			cout << endl;
+			kol++;
+			cout << setw(50) << left << " " << (j + 1) << ". Тип: Утилиты" << endl;
+			downloaded[j]->putData(); 
+		}
+	}
+		break;
+	case 3:
+		for (int j = 0; j < curSoft; j++) {
+		SoftwareType softype;
+		softype = getType(downloaded[j]);
+		if (softype == drivers)
+		{
+			if (kol != 0) {
+				cout << setw(40) << left << " " << "---------------------------------------------------------------------------------------------------" << endl;
+			}
+			cout << endl;
+			kol++;
+			cout << setw(50) << left << " " << (j + 1) << ". Тип: Драйверы" << endl;
+			downloaded[j]->putData();
+		}
+	}
+		break;
+	case 4:
+		for (int j = 0; j < curSoft; j++) {
+		SoftwareType softype;
+		softype = getType(downloaded[j]);
+		if (softype == application)
+		{
+			if (kol != 0) {
+				cout << setw(40) << left << " " << "---------------------------------------------------------------------------------------------------" << endl;
+			}
+			cout << endl;
+			kol++;
+			cout << setw(50) << left << " " << (j + 1) << ". Тип: Приложение" << endl;
+			downloaded[j]->putData();
+		}
+	}
+		break;
+	default:
+		system("cls");
+		cout << "Такого типа в файле нет" << endl;
+		break;
+	}
+	if (kol == 0) {
+		system("cls");
+		cout << "Нет такого ПО" << endl;
+	}
+	else
+	setzabor(40, 10, 100, 10 * kol);
+	system("pause");
+}
+void Software::read() {
+	int size;
+	SoftwareType softype;
+	ifstream inf;
+	inf.open("SOFT.txt");
+	if (!inf) {
+		cout << "\nНевозможно открыть файл\n";
+		return;
+	}	
+	curSoft = 0;
+	while (true) {
+		inf >> size;
+		softype = static_cast<SoftwareType>(size);
+		if (inf.eof()) {
+			inf.close();
+			break;
+		}
+		if (!inf) {
+			cout << "\nНевозможно чтение типа\n";
+			return;
+		}
+		switch (softype) {
+		case SoftwareType::os:
+			downloaded[curSoft] = new OS;
+			break;
+		case SoftwareType::application:
+			downloaded[curSoft] = new Application;
+			break;
+		case SoftwareType::drivers:
+			downloaded[curSoft] = new Driver;
+			break;
+		case SoftwareType::utilities:
+			downloaded[curSoft] = new Utility;
+			break;
+		default: cout << "\nНеизвестный тип в файле\n";
+			return;
+		}
+		inf >> downloaded[curSoft];
+		if (!inf) {
+			cout << "\nЧтение данных из файла невозможно\n";
+			return;
+		}
+		curSoft++;
+	}
+	cout << "Прочитано " << curSoft << " ПО" << endl;
 }
 int main() {
 	SetConsoleCP(1251);
 	SetConsoleOutputCP(1251);
-	int choice = 0;
-	Computer MyPC;
-	MyPC.addSoft("Microsoft Visual Studio", 4);
-	MyPC.addprogram("iisresolver.dll", 0.025, MyPC.getNumofsoft());
-	MyPC.addprogram("EntityFramework.dll", 5, MyPC.getNumofsoft());
-	MyPC.addprogram("MSTest.exe", 0.020, MyPC.getNumofsoft());	
-	MyPC.addprogram("PublisizeResources.dll", 0.020, MyPC.getNumofsoft());
-	MyPC.addSoft("Microsoft Office", 2);
-	MyPC.addprogram("file.doc", 0.0025, MyPC.getNumofsoft());
-	MyPC.addprogram("operations.xml", 20, MyPC.getNumofsoft());
-	string model,date,os,purpose,name;
-	string* soft;
-	float size=0;
-	while (1) {
-		string x = "";
+	keybd_event(VK_MENU, 0x38, 0, 0);
+	keybd_event(VK_RETURN, 0x1c, 0, 0);
+	keybd_event(VK_RETURN, 0x1c, KEYEVENTF_KEYUP, 0);
+	keybd_event(VK_MENU, 0x38, KEYEVENTF_KEYUP, 0);
+	int choice;
+	while (true) {
 		system("cls");
-		setcoordinates(68, 2);
-		cout << "Программа настройки программного обеспечения компьютера" << endl;
-		setcoordinates(70, 3);
-		cout << "Выберите, что вы хотите сделать" << endl;
-		cout << "1. Собрать данные об имеющемся ПО компьютера" << endl;
-		cout << "2. Добавить новое ПО в компьютер" << endl;
-		cout << "3. Удалить ПО из компьютера" << endl;
-		cout << "4. Изменить характеристики компьютера" << endl;
-		cout << "5. Найти ПО по названию и вывести его характеристики" << endl;
-		cout << "6. Сортировать по названию ПО" << endl;
-		cout << "7. Добавить программу в ПО" << endl;
-		cout << "8. Выйти из приложения" << endl;
-		check(choice);
-		switch (choice) {
-		case 0: return 0;
-		case 1: cout << MyPC;
-			system("pause");
-			break;
-		case 2: cout << "Введите название нового ПО" << endl;
-			getline(cin, model);
-			cout << "Введите количество программ в новом ПО" << endl;
+		gotoxy(60, 9);
+		cout << "1 - добавление сведений о ПО" << endl;
+		gotoxy(60, 10);
+		cout << "2 - вывести сведения обо всем ПО" << endl;
+		gotoxy(60, 11);
+		cout << "3 - добавить все данные в файл" << endl;
+		gotoxy(60, 12);
+		cout << "4 - перезаписать все данные в файл" << endl;
+		gotoxy(60, 13);
+		cout << "5 - прочитать все данные из файла" << endl;
+		gotoxy(60, 14);
+		cout << "6 - удалить ПО" << endl;
+		gotoxy(60, 15);
+		cout << "7 - вывести сведения по какому то виду ПО из файла" << endl;
+		gotoxy(60,16);
+		cout << "8 - выход" << endl;
+		gotoxy(60, 17);
+		cout << "Ваш выбор: " << endl;
+		setzabor(50,7,100,12);
+		gotoxy(71, 17);
+		try {
 			check(choice);
-			MyPC.addSoft(model, choice);
-			for (int i = 0; i < choice; i++) {
-				cout << "Введите название " << i + 1 << " программы" << endl;
-				getline(cin, name);
-				cout << "Введите ее размер (в МБ)" << endl;
-				check(size);
-				MyPC.addprogram(name, size, MyPC.getNumofsoft());
-			}
-			cout << "ПО успешно загружено" << endl;
+		}
+		catch (...) {
+			system("pause");
+			continue;
+		}
+		system("cls");
+		switch (choice) {
+		case 1:
+			Software::add();
+			system("cls");
+			break;
+		case 2:
+			Software::display(); 
 			system("pause");
 			break;
 		case 3:
-			cout << "Введите номер удаляемого ПО" << endl;
-			while (1) 
-			{
-				if (!(cin >> choice) || cin.get() != '\n');
-				else break;
-			}
-				MyPC.deleteSoft(choice);
-				cout << "ПО успешно удалено" << endl;
-			system("pause");
+			Software::write(1);
 			break;
-		case 4:cout << "Введите модель вашего компьютера" << endl;
-			getline(cin, model);
-			cout << "Введите дату сборки компьютера ДД/ММ/ГГГГ" << endl;
-			getline(cin, date);
-			cout << "Введите вашу ОС" << endl;
-			getline(cin, os);
-			cout << "Введите количество вашего ПО" << endl;
-			while (1) 
-			{
-				if (!(cin >> choice) || cin.get() != '\n');
-				else break;
-			}
-			if (choice > 100) throw (bad_alloc());
-			soft = new string[choice];
-			for (int i = 0; i < choice; i++) {
-				cout << "Введите название " << i + 1 << " ПО" << endl;
-				getline(cin, soft[i]);
-			}
-			MyPC.setModel(model);
-			MyPC.setOS(os);
-			MyPC.setDate(date);
-			MyPC.setnumofsoft(choice);
-			MyPC.MakeSoft(soft);
-			delete[] soft;
-			system("pause");
+		case 4:
+			Software::write(2);
 			break;
 		case 5:
-			cout << "Введите название ПО, информацию о котором вы хотите вывести на экран" << endl;
-			cin >> noskipws;
-			char ch;
-			while (cin >> ch && ch!='\n') {
-				x += ch;
-			}
-			MyPC.printSoft(x);
+			Software::read(); 
 			system("pause");
 			break;
-		case 6:
-			MyPC.sort();
+		case 6: Software::read();
+			system("cls");
+			gotoxy(60, 3);
+			cout << "Введите номер, который вы хотите удалить" << endl;
+			Software::display();
+			check(choice);
+			Software::del(choice);
+			system("pause");
 			break;
-		
-		case 7:break;
-		case 8:return 0;
+		case 7:Software::read();
+			Software::select();
+			cout << endl;
+			break;
+		case 8: return 0;
+			break;
+		default: cout << "Неизвестная команда" << endl;
 			break;
 		}
 	}
+	
+	return 0;
 }
